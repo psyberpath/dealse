@@ -1,0 +1,84 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider   = "prisma-client-js"
+  engineType = "library"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum LeadStatus {
+  NEW
+  SCRAPED
+  ANALYZED
+  DRAFTED
+  REVIEWED
+  SENT
+  FAILED
+}
+
+model Lead {
+  id          String     @id @default(uuid())
+  domain      String     @unique
+  companyName String?    @map("company_name")
+  status      LeadStatus @default(NEW)
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+
+  scrapedData     ScrapedData?
+  analysisReports AnalysisReport[]
+  emailDrafts     EmailDraft[]
+
+  @@index([domain])
+  @@map("leads")
+}
+
+model ScrapedData {
+  id                String   @id @default(uuid())
+  leadId            String   @unique @map("lead_id")
+  lead              Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  rawText           String   @map("raw_text") @db.Text
+  metaDescription   String?  @map("meta_description") @db.Text
+  socialLinks       Json?    @map("social_links")
+  techStackDetected Json?    @map("tech_stack_detected")
+  scrapedAt         DateTime @default(now()) @map("scraped_at")
+
+  @@map("scraped_data")
+}
+
+model AnalysisReport {
+  id                 String   @id @default(uuid())
+  leadId             String   @map("lead_id")
+  lead               Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  businessModel      String   @map("business_model") @db.Text
+  painPoints         Json     @map("pain_points")
+  suggestedSolutions Json     @map("suggested_solutions")
+  revenueEstimation  String?  @map("revenue_estimation")
+  modelUsed          String   @map("model_used")
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  @@map("analysis_reports")
+}
+
+enum DraftStatus {
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+}
+
+model EmailDraft {
+  id                      String      @id @default(uuid())
+  leadId                  String      @map("lead_id")
+  lead                    Lead        @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  subjectLine             String      @map("subject_line") @db.Text
+  bodyContent             String      @map("body_content") @db.Text
+  status                  DraftStatus @default(PENDING_REVIEW)
+  generationPromptVersion String?     @map("generation_prompt_version")
+  createdAt               DateTime    @default(now()) @map("created_at")
+  updatedAt               DateTime    @updatedAt @map("updated_at")
+
+  @@map("email_drafts")
+}
