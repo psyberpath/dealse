@@ -14,7 +14,7 @@ const workers: Worker[] = [];
 // Start Scraping Worker
 const scrapingWorker = new Worker(QUEUE_NAMES.SCRAPING, scrapingProcessor, {
   connection,
-  concurrency: 1, // Start with 1 to avoid being blocked
+  concurrency: 2,
 });
 workers.push(scrapingWorker);
 console.log(`[Worker] Started ${QUEUE_NAMES.SCRAPING}`);
@@ -22,11 +22,7 @@ console.log(`[Worker] Started ${QUEUE_NAMES.SCRAPING}`);
 // Start Analysis Worker
 const analysisWorker = new Worker(QUEUE_NAMES.ANALYSIS, analysisProcessor, {
   connection,
-  concurrency: 1,
-  limiter: {
-    max: 7,
-    duration: 60000,
-  }
+  concurrency: 5,
 });
 workers.push(analysisWorker);
 console.log(`[Worker] Started ${QUEUE_NAMES.ANALYSIS}`);
@@ -34,11 +30,7 @@ console.log(`[Worker] Started ${QUEUE_NAMES.ANALYSIS}`);
 // Start Drafting Worker
 const draftingWorker = new Worker(QUEUE_NAMES.DRAFTING, draftingProcessor, {
   connection,
-  concurrency: 1,
-  limiter: {
-    max: 7,
-    duration: 60000,
-  }
+  concurrency: 5,
 });
 workers.push(draftingWorker);
 console.log(`[Worker] Started ${QUEUE_NAMES.DRAFTING}`);

@@ -84,8 +84,12 @@ export class AIService {
     metaDesc: string | null,
     techStack: any
   ): Promise<AnalysisResult> {
+    // Hard limit to ~10,000 tokens to ensure cost control on massive sites
+    const MAX_CHARS = 40000;
+    const truncatedText = rawText.length > MAX_CHARS ? rawText.slice(0, MAX_CHARS) + '\n...[TRUNCATED]' : rawText;
+
     const prompt = ANALYST_PROMPT
-      .replace('{{RAW_TEXT}}', rawText)
+      .replace('{{RAW_TEXT}}', truncatedText)
       .replace('{{META_DESC}}', metaDesc || 'N/A')
       .replace('{{TECH_STACK}}', JSON.stringify(techStack));
 

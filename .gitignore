@@ -27,3 +27,5 @@ yarn-error.log*
 # Ad-hoc scripts
 test-gemini.ts
 flush-redis.ts
+
+drafts.json
