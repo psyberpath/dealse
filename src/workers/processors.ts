@@ -93,13 +93,27 @@ export const analysisProcessor = async (job: Job) => {
     // Add to next queue
     await queueService.draftingQueue.add(QUEUE_NAMES.DRAFTING, { leadId });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error(`[Analyst] Error processing lead ${leadId}:`, error);
+
+    let newStatus = 'FAILED';
+    if (error.message?.includes('SAFETY') || error.message?.includes('GoogleGenerativeAI Error')) {
+      if (error.message?.includes('429 Too Many Requests') || error.message?.includes('Quota')) {
+        newStatus = 'RATE_LIMITED';
+      } else if (error.message?.includes('SAFETY')) {
+        newStatus = 'BLOCKED_BY_SAFETY';
+      }
+    }
+
     await db.lead.update({
       where: { id: leadId },
-      data: { status: 'FAILED' },
+      data: { status: newStatus as any },
     });
-    throw error;
+
+    // Don't retry on safety blocks, it will always fail
+    if (newStatus !== 'BLOCKED_BY_SAFETY') {
+      throw error;
+    }
   }
 };
 
@@ -115,13 +129,15 @@ export const draftingProcessor = async (job: Job) => {
     }
 
     // Adapt database/Prisma types to AI Service types
-    const aiAnalysisInput = {
+    const aiAnalysisInput: any = {
       businessModel: analysis.businessModel,
       painPoints: analysis.painPoints as string[],
       suggestedSolutions: analysis.suggestedSolutions as string[],
-      revenueEstimation: analysis.revenueEstimation || undefined,
       modelUsed: analysis.modelUsed
     };
+    if (analysis.revenueEstimation) {
+      aiAnalysisInput.revenueEstimation = analysis.revenueEstimation;
+    }
 
     const draft = await aiService.draftEmail(aiAnalysisInput);
 
@@ -145,12 +161,25 @@ export const draftingProcessor = async (job: Job) => {
 
     console.log(`[Copywriter] Draft created for lead ${leadId}.`);
 
-  } catch (error) {
+  } catch (error: any) {
     console.error(`[Copywriter] Error processing lead ${leadId}:`, error);
+
+    let newStatus = 'FAILED';
+    if (error.message?.includes('SAFETY') || error.message?.includes('GoogleGenerativeAI Error')) {
+      if (error.message?.includes('429 Too Many Requests') || error.message?.includes('Quota')) {
+        newStatus = 'RATE_LIMITED';
+      } else if (error.message?.includes('SAFETY')) {
+        newStatus = 'BLOCKED_BY_SAFETY';
+      }
+    }
+
     await db.lead.update({
       where: { id: leadId },
-      data: { status: 'FAILED' },
+      data: { status: newStatus as any },
     });
-    throw error;
+
+    if (newStatus !== 'BLOCKED_BY_SAFETY') {
+      throw error;
+    }
   }
 };

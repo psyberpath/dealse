@@ -18,6 +18,8 @@ enum LeadStatus {
   REVIEWED
   SENT
   FAILED
+  BLOCKED_BY_SAFETY
+  RATE_LIMITED
 }
 
 model Lead {

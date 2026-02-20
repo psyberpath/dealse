@@ -27,6 +27,12 @@ router.post('/', async (req, res) => {
 
         // Add to queue
         await queueService.scrapingQueue.add(QUEUE_NAMES.SCRAPING, { leadId: lead.id });
+      } else if (lead.status === 'NEW' || lead.status === 'FAILED') {
+        lead = await db.lead.update({
+          where: { id: lead.id },
+          data: { status: 'NEW' }
+        });
+        await queueService.scrapingQueue.add(QUEUE_NAMES.SCRAPING, { leadId: lead.id });
       }
 
       results.push(lead);

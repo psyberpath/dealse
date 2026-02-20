@@ -23,6 +23,10 @@ console.log(`[Worker] Started ${QUEUE_NAMES.SCRAPING}`);
 const analysisWorker = new Worker(QUEUE_NAMES.ANALYSIS, analysisProcessor, {
   connection,
   concurrency: 1,
+  limiter: {
+    max: 7,
+    duration: 60000,
+  }
 });
 workers.push(analysisWorker);
 console.log(`[Worker] Started ${QUEUE_NAMES.ANALYSIS}`);
@@ -31,6 +35,10 @@ console.log(`[Worker] Started ${QUEUE_NAMES.ANALYSIS}`);
 const draftingWorker = new Worker(QUEUE_NAMES.DRAFTING, draftingProcessor, {
   connection,
   concurrency: 1,
+  limiter: {
+    max: 7,
+    duration: 60000,
+  }
 });
 workers.push(draftingWorker);
 console.log(`[Worker] Started ${QUEUE_NAMES.DRAFTING}`);

@@ -18,10 +18,10 @@ class QueueService {
 
   constructor() {
     const defaultJobOptions = {
-      attempts: 3,
+      attempts: 5,
       backoff: {
         type: 'exponential',
-        delay: 1000,
+        delay: 5000,
       },
       removeOnComplete: {
         age: 24 * 3600, // Keep for 24 hours

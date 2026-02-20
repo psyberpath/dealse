@@ -1,7 +1,10 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/generative-ai';
 import { env } from '../config/env.js';
-
-const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY);
+const apiKeys = env.GEMINI_API_KEY.split(',').map(k => k.trim()).filter(Boolean);
+if (apiKeys.length === 0) {
+  throw new Error('No GEMINI_API_KEY provided.');
+}
+const genAIInstances = apiKeys.map(key => new GoogleGenerativeAI(key));
 
 // Define the expected structure for Analysis Response
 export interface AnalysisResult {
@@ -66,7 +69,15 @@ Return the output strictly as a JSON object with the following keys:
 `;
 
 export class AIService {
-  private model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+  private currentKeyIndex = 0;
+
+  private getModel() {
+    const instance = genAIInstances[this.currentKeyIndex];
+    if (!instance) throw new Error('No valid Gemini instance found.');
+    this.currentKeyIndex = (this.currentKeyIndex + 1) % genAIInstances.length;
+    console.log(`[AIService] Using API Key #${this.currentKeyIndex === 0 ? genAIInstances.length : this.currentKeyIndex} (Project ${this.currentKeyIndex})`);
+    return instance.getGenerativeModel({ model: 'gemini-2.0-flash' });
+  }
 
   public async analyzeLead(
     rawText: string,
@@ -79,9 +90,15 @@ export class AIService {
       .replace('{{TECH_STACK}}', JSON.stringify(techStack));
 
     try {
-      const result = await this.model.generateContent({
+      const result = await this.getModel().generateContent({
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        generationConfig: { responseMimeType: 'application/json' }
+        generationConfig: { responseMimeType: 'application/json' },
+        safetySettings: [
+          { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
+          { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+          { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
+          { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE }
+        ]
       });
       const response = await result.response;
       const text = response.text();
@@ -104,9 +121,15 @@ export class AIService {
       .replace('{{SOLUTIONS}}', analysis.suggestedSolutions.join(', '));
 
     try {
-      const result = await this.model.generateContent({
+      const result = await this.getModel().generateContent({
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        generationConfig: { responseMimeType: 'application/json' }
+        generationConfig: { responseMimeType: 'application/json' },
+        safetySettings: [
+          { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
+          { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+          { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
+          { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE }
+        ]
       });
       const response = await result.response;
       const text = response.text();

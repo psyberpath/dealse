@@ -1,7 +1,7 @@
 import { env } from '../src/config/env.js';
 import { db } from '../src/services/database.js';
 
-const TARGET_DOMAIN = 'example.com';
+const TARGET_DOMAIN = 'https://tribecadentalstudio.com';
 const API_URL = `http://localhost:${process.env.PORT || 3000}`;
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
